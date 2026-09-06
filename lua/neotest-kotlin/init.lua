@@ -89,6 +89,16 @@ function KotlinNeotest.Adapter.is_test_file(file_path)
 
         for _, test_attribute in ipairs(all_attributes) do
             if string.find(content, "%@" .. test_attribute) then
+                local query = tquery.NameSpace .. tquery.TestCase
+                local tree = lib.treesitter.parse_positions(file_path, query, {
+                    nested_namespaces = false,
+                    nested_tests = false,
+                    build_position = "require('neotest-kotlin.treesitter.position')._build_position",
+                    position_id = "require('neotest-kotlin.treesitter.position')._position_id",
+                })
+                if table.maxn(tree:to_list()) == 1 then
+                    return false
+                end
                 return true
             end
         end
