@@ -21,7 +21,7 @@ function M.create_single_spec(position, proj_root, filter_arg)
         "test",
         "-l " .. results_path,
         "-f " .. proj_root,
-        "-Dtest=" .. test_ref.test_id,
+        '-Dtest="' .. util.replace(test_ref.test_id, "`") .. '"',
     }
 
     local command_string = table.concat(command, " ")

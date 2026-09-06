@@ -36,4 +36,13 @@ function M.get_package(file)
     return table.concat(pathTable, ".")
 end
 
+---@param test_ref string
+---@param pattern string
+---@param replace? string  default = ""
+---@return string
+function M.replace(test_ref, pattern, replace)
+    local sanitised, _ = string.gsub(test_ref, pattern, replace or "")
+    return sanitised
+end
+
 return M

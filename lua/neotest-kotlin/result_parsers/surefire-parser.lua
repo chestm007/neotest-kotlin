@@ -1,5 +1,6 @@
 local lib = require("neotest.lib")
 local logger = require("neotest.logging")
+local util = require("neotest-kotlin.util")
 
 local M = {}
 
@@ -7,6 +8,7 @@ local function get_test_nodes_data(tree)
     local test_nodes = {}
     for _, node in tree:iter_nodes() do
         if node:data().type == "test" then
+            node:data().name = util.replace(node:data().name, "`")
             table.insert(test_nodes, node)
         end
     end
