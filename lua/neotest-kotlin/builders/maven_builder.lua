@@ -26,7 +26,40 @@ function M.create_single_spec(position, proj_root, filter_arg)
 
     local command_string = table.concat(command, " ")
 
-    logger.debug("neotest-dotnet: Running tests using command: " .. command_string)
+    logger.warn("neotest-kotlin: Running tests using command: " .. command_string)
+
+    return {
+        command = command_string,
+        context = {
+            results_path = proj_root .. "/target/surefire-reports/" .. test_ref.report,
+            file = position.path,
+            id = position.id,
+        },
+    }
+end
+
+function M.create_dir_spec(tree, proj_root, filter_arg)
+    local position = tree:data()
+    local results_path = async.fn.tempname() .. ".trx"
+    filter_arg = filter_arg or ""
+
+    local split = util.split(position.id, "::")
+
+    local test_ref = builders._get_test_ref(position.type, split)
+
+    vim.fn.fnamemodify(require("neotest.async").fn.tempname(), ":h")
+
+    local command = {
+        "mvn",
+        "test",
+        "-l " .. results_path,
+        "-f " .. proj_root,
+        '-Dtest="' .. test_ref.test_id .. '/**"',
+    }
+
+    local command_string = table.concat(command, " ")
+
+    logger.warn("neotest-kotlin: Running tests using command: " .. command_string)
 
     return {
         command = command_string,

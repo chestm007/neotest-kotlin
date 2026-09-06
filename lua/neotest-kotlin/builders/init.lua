@@ -25,13 +25,13 @@ function M.build_spec(tree, specs)
 
     -- Adapted from https://github.com/nvim-neotest/neotest/blob/392808a91d6ee28d27cbfb93c9fd9781759b5d00/lua/neotest/lib/file/init.lua#L341
     if position.type == "dir" then
-        error("Dir not Implemented yet")
+        local spec = M._Builder.create_dir_spec(tree, proj_root)
+        table.insert(specs, spec)
     elseif position.type == "namespace" or position.type == "test" then
-        local extra_args = ""
-        local spec = M._Builder.create_single_spec(position, proj_root, extra_args)
+        local spec = M._Builder.create_single_spec(position, proj_root)
         table.insert(specs, spec)
     elseif position.type == "file" then
-        local spec = M._Builder.create_single_spec(position, proj_root, "")
+        local spec = M._Builder.create_single_spec(position, proj_root)
         table.insert(specs, spec)
     end
 
