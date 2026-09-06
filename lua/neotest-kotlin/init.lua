@@ -62,6 +62,27 @@ end
 ---@param file_path string
 ---@return boolean
 function KotlinNeotest.Adapter.is_test_file(file_path)
+    -- if vim.endswith(file_path, "BaseDatabaseWriterTest.kt") then
+    --     local foo = lib.treesitter.parse_positions(file_path, tquery.TestCase, {
+    --         nested_namespaces = true,
+    --         nested_tests = true,
+    --     })
+    --     logger.warn(foo)
+    --     logger.warn("!@#!@#!@#!@#!@#!@#")
+    --     logger.warn(vim.keys(foo:children()))
+    -- end
+    if file_path == nil then
+        return false
+    end
+
+    if not vim.endswith(file_path, ".kt") then
+        return false
+    end
+
+    if string.find(file_path, "src/main") then
+        return false
+    end
+
     if vim.endswith(file_path, ".kt") then
         local content = lib.files.read(file_path)
         -- Combine all attribute list arrays into one
