@@ -108,7 +108,7 @@ function M.create_dir_spec(tree, proj_root, filter_arg)
             end
             -- /path/to/com/company/test/testFile.kt
             -- to com.company.test.testFile.kt
-            local package = "TEST-com." .. table.concat(out):gsub("/", "."):gsub(".kt", ".xml")
+            local package = "TEST-com." .. table.concat(out):gsub("/", "."):gsub("%.kt", ".xml")
             -- prepend absolute path and surefire report path.
             return "/target/surefire-reports/" .. package
         end
