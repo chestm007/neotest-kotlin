@@ -24,6 +24,12 @@ local function process_context(context, tree)
 
     local parsed_data = M.parse_report(output_file)
 
+    if parsed_data.testsuite == nil then
+        logger.error("Test suite was nil for output file: " .. output_file)
+        logger.error(parsed_data)
+        error("FATAL ERROR")
+    end
+
     local test_results = parsed_data.testsuite.testcase
 
     logger.info("neotest-kotlin: Found " .. #test_results .. " test results when parsing TRX file: " .. output_file)
@@ -32,8 +38,6 @@ local function process_context(context, tree)
     logger.debug(test_results)
 
     local test_nodes = get_test_nodes_data(tree)
-
-    logger.debug("neotest-kotlin: Test Nodes: ")
 
     local intermediate_results = M.create_intermediate_results(test_results)
 
@@ -54,8 +58,12 @@ function M.results(spec, _, tree)
     else -- HACK: otherwise, if file is nil, we probably have a table of files to process
         local neotest_results = {}
         for _, context in ipairs(spec.context) do
+            logger.debug("CONTEXT")
+            logger.debug(context)
             local results = process_context(context, tree)
             for k, result in pairs(results) do
+                logger.debug("###### " .. k)
+                logger.debug(result)
                 neotest_results[k] = result
             end
         end
@@ -123,6 +131,7 @@ local addToResults = function(intermediate_results, test_results)
             raw_output = outcome.stack,
             test_name = test_results._attr.name,
             error_info = outcome.message,
+            classname = test_results._attr.classname,
         }
         table.insert(intermediate_results, intermediate_result)
     end
@@ -170,28 +179,44 @@ function M.convert_intermediate_results(intermediate_results, test_nodes)
                 or string.find(result_test_name, node_data.name, -#node_data.name, true)
 
             logger.debug(
-                string.format(
-                    "string.match? [result_test_name: {}, node_data.name: {}] == {}",
-                    result_test_name,
-                    node_data.name,
-                    is_match
-                )
+                "string.match? [result_test_name: "
+                    .. result_test_name
+                    .. ", node_data.name: "
+                    .. node_data.name
+                    .. "] == "
+                    .. tostring(is_match)
             )
 
-            if is_match then
-                neotest_results[node_data.id] = {
-                    status = intermediate_result.status,
-                    short = node_data.name .. ":" .. intermediate_result.status,
-                    errors = {},
-                }
+            -- HACK: this is filthy, refactor, dear GOD!
+            --
+            -- check the file is actually right.
+            --[[ node::
+            {
+                id = "/home/max/git/ewb-sdk-jvm/src/test/kotlin/com/zepben/ewb/cim/extensions/iec61970/base/core/HvCustomerTest.kt::HvCustomerTest::constructorCoverage",
+                name = "constructorCoverage",
+                path = "/home/max/git/ewb-sdk-jvm/src/test/kotlin/com/zepben/ewb/cim/extensions/iec61970/base/core/HvCustomerTest.kt",
+                range = { 24, 4, 27, 5 },
+                type = "test"
+            }
+            --]]
+            logger.debug(node_data.id .. " || " .. intermediate_result.classname)
+            logger.debug(node_data.id:gsub("/", "."):gmatch(intermediate_result.classname)())
+            if node_data.id:gsub("/", "."):gmatch(intermediate_result.classname)() ~= nil then
+                if is_match then
+                    neotest_results[node_data.id] = {
+                        status = intermediate_result.status,
+                        short = node_data.name .. ":" .. intermediate_result.status,
+                        errors = {},
+                    }
 
-                if intermediate_result.error_info then
-                    table.insert(neotest_results[node_data.id].errors, {
-                        message = intermediate_result.error_info,
-                    })
+                    if intermediate_result.error_info then
+                        table.insert(neotest_results[node_data.id].errors, {
+                            message = intermediate_result.error_info,
+                        })
+                    end
+
+                    break
                 end
-
-                break
             end
         end
     end
