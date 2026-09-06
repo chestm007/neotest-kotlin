@@ -1,9 +1,13 @@
 local lib = require("neotest.lib")
 local maven = require("neotest-kotlin.builders.maven_builder")
 local gradle = require("neotest-kotlin.builders.gradle_builder")
+local logger = require("neotest.logging")
 
+---@class Builder
+---@field build_spec fun(tree: neotest.Tree, specs?: neotest.RunSpec): neotest.RunSpec[]
 local M = {}
 
+---@param mode "maven" | "gradle"
 function M.set_builder(mode)
     if mode == "maven" then
         M._Builder = maven
@@ -31,7 +35,7 @@ function M.build_spec(tree, specs)
         local spec = M._Builder.create_single_spec(position, proj_root)
         table.insert(specs, spec)
     elseif position.type == "file" then
-        local spec = M._Builder.create_single_spec(position, proj_root)
+        local spec = M._Builder.create_single_spec(position, proj_root, "")
         table.insert(specs, spec)
     end
 

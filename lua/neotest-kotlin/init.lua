@@ -25,21 +25,20 @@ function KotlinNeotest.Adapter.root(dir)
     if pom ~= nil and build == nil then
         KotlinNeotest._Internals.mode = "maven"
         return pom
-    end
-    if build ~= nil and pom == nil then
+    elseif build ~= nil and pom == nil then
         KotlinNeotest._Internals.mode = "gradle"
         return build
+    else
+        logger.warn("Cannot determine valid project type")
+        return nil
     end
-
-    logger.warn("Cannot determine valid project type")
-    return nil
 end
 
 ---Filter directories when searching for test files
 ---@async
 ---@param name string Name of directory
 ---@param rel_path string Path to directory, relative to root
----@param root string Root directory of project
+---@param _ string Root directory of project
 ---@return boolean
 function KotlinNeotest.Adapter.filter_dir(name, rel_path, _)
     local blacklist = {
@@ -101,7 +100,7 @@ end
 ---Given a file path, parse all the tests within it.
 ---@async
 ---@param file_path string Absolute file path
----@return neotest_kotlin.Tree | nil
+---@return neotest.Tree | nil
 function KotlinNeotest.Adapter.discover_positions(file_path)
     local query = tquery.NameSpace .. tquery.TestCase
 
@@ -115,7 +114,7 @@ function KotlinNeotest.Adapter.discover_positions(file_path)
     return tree
 end
 
----@param args neotest_kotlin.RunArgs
+---@param args neotest.RunArgs
 ---@return nil | neotest.RunSpec | neotest.RunSpec[]
 function KotlinNeotest.Adapter.build_spec(args)
     logger.debug("neotest-dotnet: Creating specs from Tree (as list): ")

@@ -2,6 +2,9 @@ local logger = require("neotest.logging")
 local builders = require("neotest-kotlin.builders.util")
 local util = require("neotest-kotlin.util")
 
+---@class GradleBuilder
+---@field root_indicator string
+---@field create_single_spec fun(position: neotest.Position, proj_root: string, filter_arg?: {}): neotest.RunSpec
 local GradleBuilder = {
     rootIndicator = "build.gradle.kts",
 }

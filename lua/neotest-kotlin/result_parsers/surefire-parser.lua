@@ -2,8 +2,11 @@ local lib = require("neotest.lib")
 local logger = require("neotest.logging")
 local util = require("neotest-kotlin.util")
 
+---@class SurefireParser
+---@field results fun(spec, _, tree): neotest.Result[]
 local M = {}
 
+---@param tree neotest.Tree
 local function get_test_nodes_data(tree)
     local test_nodes = {}
     for _, node in tree:iter_nodes() do
@@ -16,8 +19,8 @@ local function get_test_nodes_data(tree)
     return test_nodes
 end
 
-function M.results(spec, _, tree)
-    local output_file = spec.context.results_path
+local function process_context(context, tree)
+    local output_file = context.results_path
 
     local parsed_data = M.parse_report(output_file)
 
@@ -31,7 +34,6 @@ function M.results(spec, _, tree)
     local test_nodes = get_test_nodes_data(tree)
 
     logger.debug("neotest-kotlin: Test Nodes: ")
-    logger.debug(test_nodes)
 
     local intermediate_results = M.create_intermediate_results(test_results)
 
@@ -44,6 +46,23 @@ function M.results(spec, _, tree)
     logger.debug(neotest_results)
 
     return neotest_results
+end
+
+function M.results(spec, _, tree)
+    if spec.context.file then -- HACK: if file isnt nil, then we only have one file to read
+        return process_context(spec.context, tree)
+    else -- HACK: otherwise, if file is nil, we probably have a table of files to process
+        local neotest_results = {}
+        for _, context in ipairs(spec.context) do
+            local results = process_context(context, tree)
+            for k, result in pairs(results) do
+                neotest_results[k] = result
+            end
+        end
+        logger.debug("Final test results after merging all.")
+        logger.debug(neotest_results)
+        return neotest_results
+    end
 end
 
 function M.get_outcome(result_value)
@@ -71,13 +90,13 @@ local function remove_bom(str)
     return str
 end
 
+---@param output_file string
 M.parse_report = function(output_file)
     logger.info("Parsing surefire xml report: " .. output_file)
     local success, xml = pcall(lib.files.read, output_file)
 
     if not success then
-        -- logger.error("No test output file found ")
-        error("No test output file found: " .. output_file)
+        logger.error("No test output file found ")
         return {}
     end
 
@@ -85,16 +104,33 @@ M.parse_report = function(output_file)
 
     local ok, parsed_data = pcall(lib.xml.parse, no_bom_xml)
     if not ok then
-        -- logger.error("Failed to parse test output:", output_file)
-        error("Failed to parse test output:", output_file)
+        error("Failed to parse test output:" .. output_file)
         return {}
     end
 
     return parsed_data
 end
 
+---@param intermediate_results neotest.Result[]
+---@return nil
+local addToResults = function(intermediate_results, test_results)
+    if test_results._attr.name ~= nil then
+        local outcome = M.get_outcome(test_results) -- This does not work as easy here. have to check for skip/error/failure
+
+        ---@type neotest.Result
+        local intermediate_result = {
+            status = outcome.result,
+            raw_output = outcome.stack,
+            test_name = test_results._attr.name,
+            error_info = outcome.message,
+        }
+        table.insert(intermediate_results, intermediate_result)
+    end
+end
+
+---@return neotest.Result[]
 function M.create_intermediate_results(test_results)
-    local intermediate_results = {}
+    local intermediate_results = {} ---@type neotest.Result[]
 
     if #test_results > 1 then
         for _, value in pairs(test_results) do
@@ -106,21 +142,10 @@ function M.create_intermediate_results(test_results)
     return intermediate_results
 end
 
-function addToResults(intermediate_results, test_results)
-    if test_results._attr.name ~= nil then
-        local outcome = M.get_outcome(test_results) -- This does not work as easy here. have to check for skip/error/failure
-
-        local intermediate_result = {
-            status = outcome.result,
-            raw_output = outcome.stack,
-            test_name = test_results._attr.name,
-            error_info = outcome.message,
-        }
-        table.insert(intermediate_results, intermediate_result)
-    end
-end
-
+---@param intermediate_results neotest.Result[]
+---@return neotest.Result[]
 function M.convert_intermediate_results(intermediate_results, test_nodes)
+    ---@type neotest.Result[]
     local neotest_results = {}
 
     for _, intermediate_result in ipairs(intermediate_results) do
@@ -138,9 +163,20 @@ function M.convert_intermediate_results(intermediate_results, test_nodes)
                 result_test_name = string.gsub(result_test_name, "%(.*%)", "")
             end
 
+            result_test_name = util.split(result_test_name, "$")[1]
+
             local is_match = #result_test_name == #node_data.name
-                and string.find(result_test_name, node_data.name, 0, true)
-                or string.find(result_test_name, node_data.name, - #node_data.name, true)
+                    and string.find(result_test_name, node_data.name, 0, true)
+                or string.find(result_test_name, node_data.name, -#node_data.name, true)
+
+            logger.debug(
+                string.format(
+                    "string.match? [result_test_name: {}, node_data.name: {}] == {}",
+                    result_test_name,
+                    node_data.name,
+                    is_match
+                )
+            )
 
             if is_match then
                 neotest_results[node_data.id] = {
