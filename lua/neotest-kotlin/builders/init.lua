@@ -1,44 +1,38 @@
-local lib = require("neotest.lib")
 local maven = require("neotest-kotlin.builders.maven_builder")
 local gradle = require("neotest-kotlin.builders.gradle_builder")
+local async = require("neotest.async")
 local logger = require("neotest.logging")
 
 ---@class Builder
----@field build_spec fun(tree: neotest.Tree, specs?: neotest.RunSpec): neotest.RunSpec[]
+---@field build_spec fun(tree: neotest.Tree, specs?: neotest.RunSpec[]): neotest.RunSpec[]
+---@field build_spec_exp fun(tree: neotest.Tree, specs?: neotest.RunSpec[]): neotest.RunSpec[]
 local M = {}
 
 ---@param mode "maven" | "gradle"
 function M.set_builder(mode)
     if mode == "maven" then
-        M._Builder = maven
+        M._builder = maven
     end
     if mode == "gradle" then
-        M._Builder = gradle
+        M._builder = gradle
     end
     return M
 end
 
+M._builder = {
+    build_spec = function(...)
+        error("No valid builder set.")
+    end,
+}
+
 function M.build_spec(tree, specs)
-    if M._Builder == nil then
-        error("No valid builder set")
-    end
-
-    local position = tree:data()
-    local proj_root = lib.files.match_root_pattern(M._Builder.rootIndicator)(position.path)
     specs = specs or {}
-
-    -- Adapted from https://github.com/nvim-neotest/neotest/blob/392808a91d6ee28d27cbfb93c9fd9781759b5d00/lua/neotest/lib/file/init.lua#L341
-    if position.type == "dir" then
-        local spec = M._Builder.create_dir_spec(tree, proj_root)
-        table.insert(specs, spec)
-    elseif position.type == "namespace" or position.type == "test" then
-        local spec = M._Builder.create_single_spec(position, proj_root)
-        table.insert(specs, spec)
-    elseif position.type == "file" then
-        local spec = M._Builder.create_single_spec(position, proj_root, "")
+    local spec = M._builder.create_spec(tree)
+    if spec == nil then
+        logger.warn("create_spec returned nil.")
+    else
         table.insert(specs, spec)
     end
-
     return #specs < 0 and nil or specs
 end
 

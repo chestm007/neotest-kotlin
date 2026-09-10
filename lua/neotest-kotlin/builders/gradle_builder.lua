@@ -1,16 +1,18 @@
+local lib = require("neotest.lib")
 local logger = require("neotest.logging")
 local builders = require("neotest-kotlin.builders.util")
 local util = require("neotest-kotlin.util")
 
 ---@class GradleBuilder
 ---@field root_indicator string
----@field create_single_spec fun(position: neotest.Position, proj_root: string, filter_arg?: {}): neotest.RunSpec
-local GradleBuilder = {
+---@field create_single_spec fun(tree: neotest.Tree): neotest.RunSpec
+local M = {
     rootIndicator = "build.gradle.kts",
 }
 
-function GradleBuilder.create_single_spec(position, proj_root, filter_arg)
-    filter_arg = filter_arg or ""
+function M.create_spec(tree)
+    local position = tree:data()
+    local proj_root = lib.files.match_root_pattern(M.rootIndicator)(position.path)
 
     local split = util.split(position.id, "::")
     local test_ref = builders._get_test_ref(position.type, split)
@@ -37,4 +39,4 @@ function GradleBuilder.create_single_spec(position, proj_root, filter_arg)
     }
 end
 
-return GradleBuilder
+return M

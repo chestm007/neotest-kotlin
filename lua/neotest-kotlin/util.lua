@@ -1,5 +1,9 @@
 local M = {}
 
+function M.contains(inputstr, pattern)
+    return (inputstr:gmatch(pattern)() ~= nil)
+end
+
 function M.split(inputstr, sep)
     if sep == nil then
         sep = "%s"
@@ -20,16 +24,26 @@ function M.indexOf(array, value)
     return nil
 end
 
+-- TODO: should we allow people to specify the cutoff ?
 function M.get_package(file)
     local x = vim.fn.fnamemodify(file, ":p:h")
     local pathTable = M.split(x, "/")
 
-    local cutof = M.indexOf(pathTable, "kotlin")
+    --- Handle cases where lazy dev's havent renamed the test directory.
+    local cutoff
+    if vim.tbl_contains(pathTable, "kotlin") then
+        cutoff = M.indexOf(pathTable, "kotlin")
+    elseif vim.tbl_contains(pathTable, "java") then
+        cutoff = M.indexOf(pathTable, "java")
+    else
+        vim.notify("unable to determine package, neither 'kotlin', nor 'java' were present in the filepath.")
+    end
+
     local size1 = 0
     for _ in pairs(pathTable) do
         size1 = size1 + 1
     end
-    for _ = cutof, 1, -1 do
+    for _ = cutoff, 1, -1 do
         table.remove(pathTable, 1)
     end
 

@@ -1,0 +1,14 @@
+{
+  "workspace": {
+    "library": [
+      "lua",
+      "$VIMRUNTIME",
+      "~/.local/share/nvim/lazy/neotest/lua/",
+      "/usr/share/nvim/runtime/lua/",
+      "/usr/share/nvim/runtime/lua/vim/"
+    ],
+    "ignoreDir": [
+      ".tests/"
+    ]
+  }
+}

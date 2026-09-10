@@ -1,0 +1,24 @@
+[*.lua]
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = true
+max_line_length = 120
+
+quote_style = double
+
+space_before_inline_comment = 2
+space_after_comment_dash = true
+
+line_space_after_if_statement = keep
+line_space_after_do_statement = keep
+line_space_after_while_statement = keep
+line_space_after_repeat_statement = keep
+line_space_after_for_statement = keep
+line_space_after_local_or_assign_statement = keep
+line_space_after_function_statement = fixed(3)
+line_space_after_expression_statement = keep
+line_space_after_comment = keep
+line_space_around_block = fixed(1)
+
+[*.md]
+trim_trailing_whitespace = false
